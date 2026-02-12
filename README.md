@@ -14,7 +14,7 @@
 ## ✨ 核心特性
 
 ### 🔐 安全加密
-- **AES-256-GCM** 军用级加密算法
+- **AES-256-GCM** 复杂加密算法
 - **PBKDF2** 密钥派生函数（可配置迭代次数）
 - 每个密码条目使用**独立盐值**
 - 主密码缓存机制，避免频繁输入
@@ -175,7 +175,7 @@ PBKDF2 + 随机盐值
 ### 本地开发
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/localpass.git
+git clone https://github.com/lixiansheng828/localpass.git
 
 # 进入目录
 cd localpass
