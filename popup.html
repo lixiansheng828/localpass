@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalPass · 密码管理器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            width: 380px;
+            color: #2d3748;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .container {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .app-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .version {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            color: #4a5568;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid #e2e8f0;
+            flex: 1;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid #f1f3f5;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: #fff;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #718096;
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .entries-list {
+            max-height: 280px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .entry-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .entry-item:hover {
+            background: #edf2f7;
+            border-color: #e2e8f0;
+        }
+
+        .entry-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .entry-label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #2d3748;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .entry-username {
+            font-size: 11px;
+            color: #718096;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 16px;
+            color: #a0aec0;
+        }
+
+        .hint {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .hint-warning {
+            background: rgba(236, 201, 75, 0.05);
+            color: #744210;
+            border: 1px solid rgba(236, 201, 75, 0.1);
+        }
+
+        .strength-container {
+            margin-top: 8px;
+        }
+
+        .footer {
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .usage-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: #ebf8ff;
+            border-radius: 12px;
+            color: #2c5282;
+            font-size: 12px;
+        }
+
+        .highlight {
+            font-weight: 700;
+            color: #c53030;
+            background: rgba(197, 48, 48, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .copyright {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #718096;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #1a202c 0%, #0d1219 100%);
+                color: #e2e8f0;
+            }
+
+            .card {
+                background: #2d3748;
+                border-color: #4a5568;
+            }
+
+            .status-item {
+                background: #2d3748;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+
+            .password-input {
+                background: #4a5568;
+                border-color: #718096;
+                color: #e2e8f0;
+            }
+
+            .btn-outline {
+                background: #2d3748;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+
+            .entry-item {
+                background: #4a5568;
+            }
+
+            .entry-item:hover {
+                background: #718096;
+            }
+
+            .entry-label {
+                color: #e2e8f0;
+            }
+
+            .usage-hint {
+                background: #2a4365;
+                color: #bee3f8;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="app-title">
+                <span style="font-size: 20px;">🔒</span>
+                <span style="font-weight: 600;">LocalPass</span>
+                <span class="version">v2.0.0</span>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item" id="extensionStatus">
+                <span class="status-dot" id="extensionDot"></span>
+                <span>扩展:</span>
+                <span style="font-weight: 600;" id="extensionText">检查中...</span>
+            </div>
+            <div class="status-item" id="masterStatus">
+                <span class="status-dot" id="masterDot"></span>
+                <span>主密码:</span>
+                <span style="font-weight: 600;" id="masterText">未设置</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>🔑</span>
+                <h3 class="card-title">主密码管理</h3>
+            </div>
+            <div>
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <input type="password" id="masterInput" class="password-input" placeholder="请输入主密码">
+                        <span class="input-icon">🔐</span>
+                    </div>
+                    <button id="setMaster" class="btn btn-primary">设置/解锁</button>
+                </div>
+                <div id="passwordStrengthContainer" class="strength-container"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>💾</span>
+                <h3 class="card-title">备份与恢复</h3>
+            </div>
+            <div>
+                <div class="button-group">
+                    <button id="exportBtn" class="btn btn-secondary flex-1">📤 导出</button>
+                    <button id="importBtn" class="btn btn-secondary flex-1">📥 导入</button>
+                </div>
+                <input type="file" id="importFile" accept=".json,application/json" style="display: none">
+                <div class="hint hint-warning" style="margin-top: 12px;">
+                    <span>⚠️</span>
+                    <span>导入将合并现有条目</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>⚙️</span>
+                <h3 class="card-title">设置</h3>
+            </div>
+            <div class="button-group">
+                <button id="settingsBtn" class="btn btn-outline flex-1">⚙️ 扩展设置</button>
+                <button id="helpBtn" class="btn btn-outline flex-1">❓ 帮助</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="usage-hint">
+                <span>💡</span>
+                <span>密码框连续点击 <strong id="clickCountDisplay" class="highlight">5</strong> 次打开面板</span>
+            </div>
+            <div class="copyright">
+                <span>🔒 本地存储</span>
+                <span>|</span>
+                <span>v2.0.0</span>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
