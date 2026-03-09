@@ -157,6 +157,75 @@
             transform: translateY(-1px);
         }
 
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+            transform: translateY(-1px);
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .strength-container {
+            margin-top: 8px;
+        }
+
+        .master-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(108, 117, 125, 0.05);
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        .status-dot.set {
+            background: #28a745;
+        }
+
+        .status-dot.empty {
+            background: #17a2b8;
+        }
+
         .hint {
             display: flex;
             align-items: center;
@@ -245,6 +314,24 @@
                 background: #4a5568;
             }
 
+            .btn-secondary {
+                background: #4a5568;
+            }
+
+            .btn-secondary:hover {
+                background: #718096;
+            }
+
+            .password-input {
+                background: #4a5568;
+                border-color: #718096;
+                color: #e2e8f0;
+            }
+
+            .master-status {
+                background: rgba(74, 85, 104, 0.3);
+            }
+
             .hint {
                 background: rgba(74, 85, 104, 0.3);
                 color: #a0aec0;
@@ -290,6 +377,28 @@
 
         <div class="section">
             <h3>🔐 安全</h3>
+
+            <!-- 主密码管理 -->
+            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f3f5;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #4a5568;">主密码管理</h4>
+                <div class="master-status" id="masterStatus">
+                    <span class="status-dot" id="masterDot"></span>
+                    <span id="masterStatusText">检查中...</span>
+                </div>
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <input type="password" id="masterInput" class="password-input" placeholder="请输入主密码">
+                        <span class="input-icon">🔐</span>
+                    </div>
+                    <button id="setMasterBtn" class="btn-primary" style="flex: 0 0 auto; padding: 10px 20px;">设置/修改</button>
+                </div>
+                <div id="passwordStrengthContainer" class="strength-container"></div>
+                <div class="hint" style="margin-top: 12px;">
+                    <span>💡</span>
+                    <span>首次设置留空将以明文存储密码；修改时需先输入当前密码</span>
+                </div>
+            </div>
+
             <div class="input-group">
                 <label>
                     PBKDF2 迭代次数
