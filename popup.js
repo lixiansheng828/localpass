@@ -388,7 +388,7 @@
     // 设置页面
     if (DOM.settingsBtn) {
       DOM.settingsBtn.addEventListener('click', () => {
-        chrome.runtime.openOptionsPage?.() || chrome.tabs.create({ url: 'settings.html' });
+        chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
       });
     }
 
