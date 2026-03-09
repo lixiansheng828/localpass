@@ -175,20 +175,14 @@
                         }
 
                         if (plain !== null) {
-                            if (newPassword === '' && oldMasterInfo && !oldMasterInfo.empty) {
-                                entry.plain = plain;
-                                delete entry.iv;
-                                delete entry.data;
-                                delete entry.salt;
-                            } else {
-                                const entrySalt = crypto.getRandomValues(new Uint8Array(16));
-                                const key = await this.deriveKey(newPassword, entrySalt);
-                                const enc = await this.encrypt(key, plain);
-                                entry.iv = enc.iv;
-                                entry.data = enc.data;
-                                entry.salt = Base64.fromBuffer(entrySalt);
-                                delete entry.plain;
-                            }
+                            // 始终加密存储
+                            const entrySalt = crypto.getRandomValues(new Uint8Array(16));
+                            const key = await this.deriveKey(newPassword, entrySalt);
+                            const enc = await this.encrypt(key, plain);
+                            entry.iv = enc.iv;
+                            entry.data = enc.data;
+                            entry.salt = Base64.fromBuffer(entrySalt);
+                            delete entry.plain;
                             results.success++;
                         } else {
                             results.failed++;
@@ -253,10 +247,6 @@
                 DOM.masterStatusText.textContent = '未设置主密码';
                 DOM.masterDot.className = 'status-dot';
                 DOM.masterDot.style.background = '';
-            } else if (master.empty) {
-                DOM.masterStatusText.textContent = '当前使用空密码（明文存储）';
-                DOM.masterDot.className = 'status-dot empty';
-                DOM.masterDot.style.background = '#17a2b8';
             } else {
                 DOM.masterStatusText.textContent = '已设置主密码';
                 DOM.masterDot.className = 'status-dot set';
@@ -292,17 +282,14 @@
         async firstTimeSetup(password) {
             // 首次设置主密码
             if (password === '') {
-                if (!confirm('⚠️ 确定不设置主密码？\n密码将以明文存储，不再加密。')) {
-                    throw new Error('已取消');
-                }
-                // 设置空密码模式
-                await StorageManager.set({ [STORAGE_KEYS.MASTER]: { empty: true } });
-                return;
+                throw new Error('主密码不能为空');
             }
 
             // 验证密码长度
-            if (password.length < DEFAULT_SETTINGS.minPasswordLength) {
-                throw new Error(`密码长度不能少于 ${DEFAULT_SETTINGS.minPasswordLength} 个字符`);
+            const settings = await StorageManager.get([STORAGE_KEYS.SETTINGS]);
+            const minLength = (settings.settings || DEFAULT_SETTINGS).minPasswordLength;
+            if (password.length < minLength) {
+                throw new Error(`密码长度不能少于 ${minLength} 个字符`);
             }
 
             // 确认密码
@@ -339,39 +326,31 @@
             if (!isValid) throw new Error('当前主密码错误');
 
             // 获取新密码
-            const newPassword = prompt('请输入新主密码（留空以移除主密码）:');
+            const newPassword = prompt('请输入新主密码:');
             if (newPassword === null) throw new Error('已取消');
 
-            // 处理移除主密码
+            // 禁止空密码
             if (newPassword === '') {
-                if (!masterInfo.empty) {
-                    const confirmRemove = confirm(
-                        '⚠️ 您正在**完全移除**主密码！\n\n' +
-                        '此操作将：\n' +
-                        '• 所有已保存的密码转为明文存储\n' +
-                        '• 不再需要密码验证即可填充\n' +
-                        '• 安全性显著降低\n\n' +
-                        '是否继续？'
-                    );
-                    if (!confirmRemove) throw new Error('已取消');
-                }
-            } else {
-                // 验证新密码长度
-                if (newPassword.length < DEFAULT_SETTINGS.minPasswordLength) {
-                    throw new Error(`密码长度不能少于 ${DEFAULT_SETTINGS.minPasswordLength} 个字符`);
-                }
+                throw new Error('主密码不能为空');
+            }
 
-                // 确认新密码
-                const confirmPassword = prompt('请再次输入新主密码以确认:');
-                if (confirmPassword === null) throw new Error('已取消');
-                if (confirmPassword !== newPassword) throw new Error('两次输入的密码不一致');
+            // 验证新密码长度
+            const settings = await StorageManager.get([STORAGE_KEYS.SETTINGS]);
+            const minLength = (settings.settings || DEFAULT_SETTINGS).minPasswordLength;
+            if (newPassword.length < minLength) {
+                throw new Error(`密码长度不能少于 ${minLength} 个字符`);
+            }
 
-                // 密码强度检查
-                const strength = PasswordStrength.check(newPassword);
-                if (strength.score < 40) {
-                    if (!confirm(`密码强度为"${strength.level}"，仍要继续吗？`)) {
-                        throw new Error('已取消');
-                    }
+            // 确认新密码
+            const confirmPassword = prompt('请再次输入新主密码以确认:');
+            if (confirmPassword === null) throw new Error('已取消');
+            if (confirmPassword !== newPassword) throw new Error('两次输入的密码不一致');
+
+            // 密码强度检查
+            const strength = PasswordStrength.check(newPassword);
+            if (strength.score < 40) {
+                if (!confirm(`密码强度为"${strength.level}"，仍要继续吗？`)) {
+                    throw new Error('已取消');
                 }
             }
 
@@ -380,32 +359,26 @@
                 const results = await CryptoService.reencryptAll(
                     passwords,
                     masterInfo.empty ? '' : oldPassword,
-                    newPassword || '',
+                    newPassword,
                     masterInfo
                 );
                 await StorageManager.set({ [STORAGE_KEYS.PASSWORDS]: passwords });
                 Logger.log(`重新加密完成: ${results.success}/${results.total}`);
             }
 
-            // 更新主密码存储
-            if (newPassword === '' && !masterInfo.empty) {
-                // 移除主密码
-                await StorageManager.set({ [STORAGE_KEYS.MASTER]: { empty: true } });
-            } else if (newPassword !== '') {
-                // 设置新主密码
-                const salt = crypto.getRandomValues(new Uint8Array(16));
-                const key = await CryptoService.deriveKey(newPassword, salt);
-                const verifier = await CryptoService.encrypt(key, 'verifier');
+            // 设置新主密码
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const key = await CryptoService.deriveKey(newPassword, salt);
+            const verifier = await CryptoService.encrypt(key, 'verifier');
 
-                await StorageManager.set({
-                    [STORAGE_KEYS.MASTER]: {
-                        salt: Base64.fromBuffer(salt),
-                        iterations: DEFAULT_SETTINGS.pbkdf2Iterations,
-                        verifier,
-                        empty: false
-                    }
-                });
-            }
+            await StorageManager.set({
+                [STORAGE_KEYS.MASTER]: {
+                    salt: Base64.fromBuffer(salt),
+                    iterations: DEFAULT_SETTINGS.pbkdf2Iterations,
+                    verifier,
+                    empty: false
+                }
+            });
         }
     };
 
