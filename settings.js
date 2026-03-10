@@ -23,6 +23,7 @@
         status: document.getElementById('status'),
         masterInput: document.getElementById('masterInput'),
         setMasterBtn: document.getElementById('setMasterBtn'),
+        deleteMasterBtn: document.getElementById('deleteMasterBtn'),
         masterDot: document.getElementById('masterDot'),
         masterStatusText: document.getElementById('masterStatusText'),
         passwordStrengthContainer: document.getElementById('passwordStrengthContainer')
@@ -379,6 +380,39 @@
                     empty: false
                 }
             });
+        },
+
+        async handleDeleteMaster() {
+            if (!confirm('确定要删除主密码及所有密码吗？此操作不可恢复！')) return;
+
+            try {
+                const storage = await StorageManager.get([STORAGE_KEYS.MASTER]);
+                const master = storage.master;
+
+                if (master && !master.empty) {
+                    // 验证当前主密码
+                    const currentPassword = prompt('请输入当前主密码以确认删除:');
+                    if (currentPassword === null) throw new Error('已取消');
+
+                    const isValid = await CryptoService.verifyMaster(currentPassword, master);
+                    if (!isValid) throw new Error('主密码错误，操作已取消');
+                }
+
+                // 删除主密码和所有密码
+                await StorageManager.set({
+                    [STORAGE_KEYS.MASTER]: null,
+                    [STORAGE_KEYS.PASSWORDS]: null
+                });
+
+                DOM.masterInput.value = '';
+                PasswordStrength.render('', DOM.passwordStrengthContainer);
+                await this.loadStatus();
+                SettingsManager.showStatus('主密码及所有密码已删除', 'success');
+            } catch (error) {
+                if (error.message !== '已取消') {
+                    SettingsManager.showStatus(error.message || '操作失败', 'error');
+                }
+            }
         }
     };
 
@@ -555,6 +589,9 @@
         }
         if (DOM.setMasterBtn) {
             DOM.setMasterBtn.addEventListener('click', () => MasterManager.handleSetMaster());
+        }
+        if (DOM.deleteMasterBtn) {
+            DOM.deleteMasterBtn.addEventListener('click', () => MasterManager.handleDeleteMaster());
         }
 
         // 存储变化监听
